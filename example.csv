@@ -1,0 +1,4 @@
+Warning, Flag Code, Flag Name, Priority, File, Line, Column, Warning Text, Additional Text
+1,462,nestcomment,1,example.cc,1,46,"Comment starts inside comment","A comment open sequence (/*) appears within a comment.  This usually means an earlier comment was not closed."
+2,7,usedef,1,example.cc,6,5,"Variable x used before definition","An rvalue is used that may not be initialized to a value on some execution path."
+3,157,noret,1,example.cc,7,2,"Path with no return in function declared to return int","There is a path through a function declared to return a value on which there is no return statement. This means the execution may fall through without returning a meaningful result to the caller."
