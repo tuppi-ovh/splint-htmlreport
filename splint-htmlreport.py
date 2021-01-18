@@ -323,7 +323,6 @@ class SplintHandler(object):
         with open(filename, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                print(row)
                 self.errors.append({
                     'file': row[" File"],
                     'line': int(row[" Line"]),
