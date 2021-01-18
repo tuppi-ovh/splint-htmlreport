@@ -1,22 +1,17 @@
-#!/usr/bin/env python
-
-from __future__ import unicode_literals
-
 import io
 import sys
 import optparse
 import os
 import operator
+import csv
 
 from collections import Counter
 from pygments import highlight
 from pygments.lexers import guess_lexer, guess_lexer_for_filename
 from pygments.formatters import HtmlFormatter  # pylint: disable=no-name-in-module
 from pygments.util import ClassNotFound
-from xml.sax import parse as xml_parse
-from xml.sax import SAXParseException as XmlParseException
-from xml.sax.handler import ContentHandler as XmlContentHandler
 from xml.sax.saxutils import escape
+
 """
 Turns a splint csv file into a browsable html report along
 with syntax highlighted source code.
@@ -259,7 +254,7 @@ HTML_FOOTER = """
     </div>
     <div id="footer" class="footer">
       <p>
-        Splint %s - annotation-assisted static program checker<br>
+        Splint - annotation-assisted static program checker<br>
         <br>
         Internet: <a href="https://github.com/splintchecker/splint">https://github.com/splintchecker/splint</a><br>
       </p>
@@ -317,75 +312,29 @@ class AnnotateCodeFormatter(HtmlFormatter):
             yield i, t
 
 
-class SplintHandler(XmlContentHandler):
+class SplintHandler(object):
 
     """Parses the splint csv file and produces a list of all its errors."""
 
     def __init__(self):
-        XmlContentHandler.__init__(self)
         self.errors = []
-        self.version = '1'
-        self.versionSplint = ''
 
-    def startElement(self, name, attributes):
-        if name == 'results':
-            self.version = attributes.get('version', self.version)
-
-        if self.version == '1':
-            self.handleVersion1(name, attributes)
-        else:
-            self.handleVersion2(name, attributes)
-
-    def handleVersion1(self, name, attributes):
-        if name != 'error':
-            return
-
-        self.errors.append({
-            'file': attributes.get('file', ''),
-            'line': int(attributes.get('line', 0)),
-            'locations': [{
-                'file': attributes.get('file', ''),
-                'line': int(attributes.get('line', 0)),
-            }],
-            'id': attributes['id'],
-            'severity': attributes['severity'],
-            'msg': attributes['msg']
-        })
-
-    def handleVersion2(self, name, attributes):
-        if name == 'splint':
-            self.versionSplint = attributes['version']
-        if name == 'error':
-            error = {
-                'locations': [],
-                'file': '',
-                'line': 0,
-                'id': attributes['id'],
-                'severity': attributes['severity'],
-                'msg': attributes['msg'],
-                'verbose': attributes.get('verbose')
-            }
-
-            if 'inconclusive' in attributes:
-                error['inconclusive'] = attributes['inconclusive']
-            if 'cwe' in attributes:
-                error['cwe'] = attributes['cwe']
-
-            self.errors.append(error)
-        elif name == 'location':
-            assert self.errors
-            error = self.errors[-1]
-            locations = error['locations']
-            file = attributes['file']
-            line = int(attributes['line'])
-            if not locations:
-                error['file'] = file
-                error['line'] = line
-            locations.append({
-                'file': file,
-                'line': line,
-                'info': attributes.get('info')
-            })
+    def parse(self, filename):
+        with open(filename, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                print(row)
+                self.errors.append({
+                    'file': row[" File"],
+                    'line': int(row[" Line"]),
+                    'locations': [{
+                        'file': row[" File"],
+                        'line': int(row[" Line"]),
+                    }],
+                    'id': row[" Flag Name"],
+                    'severity': row[" Priority"],
+                    'msg': "{}: {}".format(row[" Warning Text"], row[" Additional Text"])
+                })
 
 if __name__ == '__main__':
     # Configure all the options this little utility is using.
@@ -424,16 +373,16 @@ if __name__ == '__main__':
     if options.source_dir:
         source_dir = options.source_dir
 
-    # Parse the xml from all files defined in file argument
+    # Parse the csv from all files defined in file argument
     # or from stdin. If no input is provided, stdin is used
     # Produce a simple list of errors.
-    print('Parsing xml report.')
+    print('Parsing csv report.')
     try:
         contentHandler = SplintHandler()
         for fname in options.file or [sys.stdin]:
-            xml_parse(fname, contentHandler)
-    except (XmlParseException, ValueError) as msg:
-        print('Failed to parse splint csv file: %s' % msg)
+            contentHandler.parse(fname)
+    except:
+        print('Failed to parse splint csv file')
         sys.exit(1)
 
     # We have a list of errors. But now we want to group them on
@@ -539,7 +488,7 @@ if __name__ == '__main__':
                 highlight(content, lexer, htmlFormatter).decode(
                     options.source_encoding))
 
-            output_file.write(HTML_FOOTER % contentHandler.versionSplint)
+            output_file.write(HTML_FOOTER)
 
         print('  ' + filename)
 
@@ -637,7 +586,7 @@ if __name__ == '__main__':
                              html_escape(error['msg'])))
 
         output_file.write('\n       </table>')
-        output_file.write(HTML_FOOTER % contentHandler.versionSplint)
+        output_file.write(HTML_FOOTER)
 
     if (decode_errors):
         sys.stderr.write("\nGenerating html failed for the following files: " + ' '.join(decode_errors))
@@ -705,6 +654,6 @@ if __name__ == '__main__':
                     break
             stats_file.write("</p>\n")
 
-        stats_file.write(HTML_FOOTER % contentHandler.versionSplint)
+        stats_file.write(HTML_FOOTER)
 
     print("\nOpen '" + options.report_dir + "/index.html' to see the results.")

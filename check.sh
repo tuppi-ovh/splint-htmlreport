@@ -21,24 +21,21 @@ function validate_html {
     fi
 }
 
-if [ -z "$PYTHON" ]; then
-    PYTHON=python
-fi
-
-REPORT_DIR=$(mktemp -d -t htmlreport-XXXXXXXXXX)
+REPORT_DIR=`pwd`/htmlreport
 INDEX_HTML="$REPORT_DIR/index.html"
 STATS_HTML="$REPORT_DIR/stats.html"
-GUI_TEST_XML="$REPORT_DIR/gui_test.xml"
-ERRORLIST_XML="$REPORT_DIR/errorlist.xml"
-UNMATCHEDSUPPR_XML="$REPORT_DIR/unmatchedSuppr.xml"
 
+# execute splint 
+set +e
 ../splint/src/splint -csv example.csv example.cc
+set -e
 
-#$PYTHON splint-htmlreport --file ../gui/test/data/xmlfiles/xmlreport_v2.xml --title "xml2 test" --report-dir "$REPORT_DIR" --source-dir ../test/
+python3 splint-htmlreport.py --file example.csv --title "csv test" --report-dir $REPORT_DIR --source-dir .
 echo -e "\n"
+
 # Check HTML syntax
 validate_html "$INDEX_HTML"
 validate_html "$STATS_HTML"
 
-
+# clean up
 rm -rf "$REPORT_DIR"

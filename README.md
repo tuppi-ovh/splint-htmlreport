@@ -7,4 +7,4 @@ The utility is a copy-paste-customize project of a well known [cppcheck-htmlrepo
 
 # License
 
-The original project [cppcheck-htmlreport](https://github.com/danmar/cppcheck/tree/main/htmlreport) is published under the `GPL-3.0 License`. We keep the same license for `splint-htmlreport` project. For more details refert to the [LICENSE](LICENSE) file.
+The original project [cppcheck-htmlreport](https://github.com/danmar/cppcheck/tree/main/htmlreport) is published under the `GPL-3.0 License`. We keep the same license for `splint-htmlreport` project. For more details refer to the [LICENSE](LICENSE) file.
