@@ -256,7 +256,7 @@ HTML_FOOTER = """
       <p>
         Splint - annotation-assisted static program checker<br>
         <br>
-        Internet: <a href="https://github.com/splintchecker/splint">https://github.com/splintchecker/splint</a><br>
+        Internet: <a href="https://splint.org">https://splint.org</a><br>
       </p>
     </div>
   </body>
@@ -331,7 +331,7 @@ class SplintHandler(object):
                         'line': int(row[" Line"]),
                     }],
                     'id': row[" Flag Name"],
-                    'severity': row[" Priority"],
+                    'priority': row[" Priority"],
                     'msg': "{}: {}".format(row[" Warning Text"], row[" Additional Text"])
                 })
 
@@ -421,7 +421,7 @@ if __name__ == '__main__':
                     newError['line'] = location['line']
                     if location.get('info'):
                         newError['msg'] = location['info']
-                        newError['severity'] = 'information'
+                        newError['priority'] = '3'
                         del newError['verbose']
 
                     errors.append(newError)
@@ -536,7 +536,7 @@ if __name__ == '__main__':
         output_file.write(HTML_HEAD_END.replace("content", "content_index", 1))
 
         output_file.write('\n       <table>')
-        output_file.write('\n       <tr><th>Line</th><th>Id</th><th>CWE</th><th>Severity</th><th>Message</th></tr>')
+        output_file.write('\n       <tr><th>Line</th><th>Id</th><th></th><th>Priority</th><th>Message</th></tr>')
         for filename, data in sorted(files.items()):
             if filename in decode_errors:  # don't print a link but a note
                 output_file.write("\n       <tr><td colspan=\"5\">%s</td></tr>" % (filename))
@@ -556,33 +556,15 @@ if __name__ == '__main__':
                     try:
                         if error['inconclusive'] == 'true':
                             error_class = 'class="inconclusive"'
-                            error['severity'] += ", inconcl."
+                            error['priority'] += ", inconcl."
                     except KeyError:
                         pass
 
-                    try:
-                        if error['cwe']:
-                            cwe_url = "<a href=\"https://cwe.mitre.org/data/definitions/" + error['cwe'] + ".html\">" + error['cwe'] + "</a>"
-                    except KeyError:
-                        cwe_url = ""
-
-                    if error['severity'] == 'error':
-                        error_class = 'class="error"'
-                    if error['id'] == 'missingInclude':
-                        output_file.write(
-                            '\n         <tr class="%s"><td></td><td>%s</td><td></td><td>%s</td><td>%s</td></tr>' %
-                            (error['id'], error['id'], error['severity'], html_escape(error['msg'])))
-                    elif (error['id'] == 'unmatchedSuppression') and filename.endswith('*'):
-                        output_file.write(
-                            '\n         <tr class="%s"><td></td><td>%s</td><td></td><td>%s</td><td %s>%s</td></tr>' %
-                            (error['id'], error['id'], error['severity'], error_class,
-                             html_escape(error['msg'])))
-                    else:
-                        output_file.write(
-                            '\n       <tr class="%s"><td><a href="%s#line-%d">%d</a></td><td>%s</td><td>%s</td><td>%s</td><td %s>%s</td></tr>' %
-                            (error['id'], data['htmlfile'], error['line'], error['line'],
-                             error['id'], cwe_url, error['severity'], error_class,
-                             html_escape(error['msg'])))
+                    output_file.write(
+                        '\n       <tr class="%s"><td><a href="%s#line-%d">%d</a></td><td>%s</td><td>%s</td><td>%s</td><td %s>%s</td></tr>' %
+                        (error['id'], data['htmlfile'], error['line'], error['line'],
+                            error['id'], "", error['priority'], error_class,
+                            html_escape(error['msg'])))
 
         output_file.write('\n       </table>')
         output_file.write(HTML_FOOTER)
@@ -604,19 +586,19 @@ if __name__ == '__main__':
             continue
         stats_tmplist = []
         for error in sorted(data['errors'], key=lambda k: k['line']):
-            stats_tmplist.append(error['severity'])
+            stats_tmplist.append(error['priority'])
 
         stats_countlist[filename] = dict(Counter(stats_tmplist))
 
-    # get top ten for each severity
-    SEVERITIES = "error", "warning", "portability", "performance", "style", "unusedFunction", "information", "missingInclude", "internal"
+    # get top ten for each priority
+    PRIORITIES = "1", "2", "3"
 
     with io.open(os.path.join(options.report_dir, 'stats.html'), 'w') as stats_file:
 
         stats_file.write(HTML_HEAD.replace('id="menu"', 'id="menu_index"', 1).replace("Defects:", "Back to summary", 1) % (options.title, '', options.title, 'Statistics', ''))
         stats_file.write(HTML_HEAD_END.replace("content", "content_index", 1))
 
-        for sev in SEVERITIES:
+        for prio in PRIORITIES:
             _sum = 0
             stats_templist = {}
 
@@ -625,8 +607,8 @@ if __name__ == '__main__':
             try:
                 for filename in stats_countlist:
                     try:  # also bail out if we have a file with no sev-results
-                        _sum += stats_countlist[filename][sev]
-                        stats_templist[filename] = (int)(stats_countlist[filename][sev])  # file : amount,
+                        _sum += stats_countlist[filename][prio]
+                        stats_templist[filename] = (int)(stats_countlist[filename][prio])  # file : amount,
                     except KeyError:
                         continue
                 # don't print "0 style" etc, if no style warnings were found
@@ -634,7 +616,7 @@ if __name__ == '__main__':
                     continue
             except KeyError:
                 continue
-            stats_file.write("<p>Top 10 files for " + sev + " severity, total findings: " + str(_sum) + "<br>\n")
+            stats_file.write("<p>Top 10 files for priority " + prio + ", total findings: " + str(_sum) + "<br>\n")
 
             # sort, so that the file with the most severities per type is first
             stats_list_sorted = sorted(stats_templist.items(), key=operator.itemgetter(1, 0), reverse=True)

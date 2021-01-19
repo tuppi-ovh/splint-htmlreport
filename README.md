@@ -4,6 +4,9 @@ This is a little utility to generate a html report of a CSV file produced by [sp
 
 The utility is a copy-paste-customize project of a well known [cppcheck-htmlreport](https://github.com/danmar/cppcheck/tree/main/htmlreport).
 
+![image](images/screenshot_1.png)
+
+![image](images/screenshot_2.png)
 
 # License
 
